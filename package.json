@@ -10,6 +10,7 @@
     "test:cin7": "ts-node src/test/test-cin7.ts",
     "test:stripe": "ts-node src/test/test-stripe.ts",
     "test:db": "ts-node src/test/test-database.ts",
+    "test:worker": "ts-node src/test/test-worker.ts",
     "lint": "prettier --check .",
     "format": "prettier --write ."
   },

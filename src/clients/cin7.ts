@@ -74,12 +74,34 @@ export class Cin7Client {
     status?: string;
     createdFrom?: string;
     createdTo?: string;
+    modifiedSince?: string;
+    limit?: number;
     page?: number;
     rows?: number;
-  }): Promise<Cin7Sale[]> {
+  }): Promise<any[]> {
     try {
       logger.info({ msg: 'Fetching sales from Cin7', params });
-      const response = await this.client.get('/api/v1/Sales', { params });
+      
+      // Map our params to Cin7 API params
+      const cin7Params: any = {
+        Page: params?.page || 1,
+        Limit: params?.limit || params?.rows || 100,
+      };
+      
+      if (params?.status) {
+        cin7Params.Status = params.status;
+      }
+      if (params?.createdFrom) {
+        cin7Params.CreatedFrom = params.createdFrom;
+      }
+      if (params?.createdTo) {
+        cin7Params.CreatedTo = params.createdTo;
+      }
+      if (params?.modifiedSince) {
+        cin7Params.ModifiedSince = params.modifiedSince;
+      }
+      
+      const response = await this.client.get('/api/v1/Sales', { params: cin7Params });
       return response.data;
     } catch (error) {
       logger.error({ msg: 'Failed to fetch sales', error });
@@ -104,13 +126,13 @@ export class Cin7Client {
   /**
    * Update sale fields (note or custom fields for payment link)
    */
-  async updateSale(payload: Cin7UpdateSalePayload): Promise<Cin7Sale> {
+  async updateSale(id: number, data: { Note?: string; CustomField1?: string; CustomField2?: string }): Promise<any> {
     try {
-      logger.info({ msg: 'Updating sale', saleId: payload.id });
-      const response = await this.client.put(`/api/v1/Sales/${payload.id}`, payload);
+      logger.info({ msg: 'Updating sale', saleId: id });
+      const response = await this.client.put(`/api/v1/Sales/${id}`, data);
       return response.data;
     } catch (error) {
-      logger.error({ msg: 'Failed to update sale', saleId: payload.id, error });
+      logger.error({ msg: 'Failed to update sale', saleId: id, error });
       throw error;
     }
   }
