@@ -9,7 +9,7 @@ const EnvSchema = z.object({
   STRIPE_API_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   CIN7_BASE_URL: z.string().url().default('https://api.cin7.com'),
-  CIN7_API_KEY: z.string().optional(),
+  CIN7_API_KEY: z.string().min(1, 'CIN7_API_KEY is required'),
   CIN7_TENANT: z.string().optional(),
 });
 
