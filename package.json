@@ -8,6 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "test:cin7": "ts-node src/test/test-cin7.ts",
+    "test:stripe": "ts-node src/test/test-stripe.ts",
     "lint": "prettier --check .",
     "format": "prettier --write ."
   },
