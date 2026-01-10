@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+
+# Build output (will be rebuilt)
+dist/
+
+# Git
+.git/
+.gitignore
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+npm-debug.log
+npm-debug.log*
+*.log
+
+# Testing
+coverage/
+.nyc_output/
+
+# Database
+data/
+*.db
+*.sqlite
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+README.md
+*.md
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.circleci/

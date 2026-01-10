@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  integration-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: redi-cin7-stripe-integration
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      # Cin7 Configuration
+      CIN7_BASE_URL: ${CIN7_BASE_URL:-https://api.cin7.com}
+      CIN7_API_KEY: ${CIN7_API_KEY}
+      CIN7_TENANT: ${CIN7_TENANT}
+      # Stripe Configuration
+      STRIPE_API_KEY: ${STRIPE_API_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      # Worker Configuration
+      WORKER_ENABLED: ${WORKER_ENABLED:-true}
+      WORKER_POLL_INTERVAL_MS: ${WORKER_POLL_INTERVAL_MS:-60000}
+      WORKER_BATCH_SIZE: ${WORKER_BATCH_SIZE:-10}
+      # Admin Configuration
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-admin-secret-token}
+      # Alerting Configuration
+      ALERT_ENABLED: ${ALERT_ENABLED:-false}
+      ALERT_CRITICAL_THRESHOLD: ${ALERT_CRITICAL_THRESHOLD:-3}
+      ALERT_WARNING_THRESHOLD: ${ALERT_WARNING_THRESHOLD:-5}
+      ALERT_SLACK_ENABLED: ${ALERT_SLACK_ENABLED:-false}
+      ALERT_SLACK_WEBHOOK_URL: ${ALERT_SLACK_WEBHOOK_URL}
+      ALERT_SLACK_CHANNEL: ${ALERT_SLACK_CHANNEL:-#alerts}
+    volumes:
+      # Persist SQLite database across container restarts
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  # Optional: Redis for future sessions/caching support
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: redi-redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 30s
+  #     timeout: 5s
+  #     retries: 3
+
+volumes:
+  # redis_data:
