@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cin7-stripe-config
+  namespace: payments
+data:
+  CIN7_BASE_URL: "https://api.cin7.com"
+  WORKER_ENABLED: "true"
+  WORKER_POLL_INTERVAL_MS: "60000"
+  WORKER_BATCH_SIZE: "20"
+  ALERT_ENABLED: "true"
+  ALERT_CRITICAL_THRESHOLD: "3"
+  ALERT_WARNING_THRESHOLD: "5"
+  ALERT_SLACK_ENABLED: "true"
+  ALERT_SLACK_CHANNEL: "#payments-alerts"
+  ALERT_EMAIL_ENABLED: "false"
+  ALERT_PAGERDUTY_ENABLED: "false"

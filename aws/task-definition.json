@@ -1,0 +1,97 @@
+{
+  "family": "cin7-stripe-integration",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::ACCOUNT_ID:role/cin7StripeTaskRole",
+  "containerDefinitions": [
+    {
+      "name": "integration-service",
+      "image": "ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/cin7-stripe-integration:latest",
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "NODE_ENV", "value": "production" },
+        { "name": "LOG_LEVEL", "value": "info" },
+        { "name": "APP_PORT", "value": "3000" },
+        { "name": "CIN7_BASE_URL", "value": "https://api.cin7.com" },
+        { "name": "WORKER_ENABLED", "value": "true" },
+        { "name": "WORKER_POLL_INTERVAL_MS", "value": "60000" },
+        { "name": "WORKER_BATCH_SIZE", "value": "20" },
+        { "name": "ALERT_ENABLED", "value": "true" },
+        { "name": "ALERT_CRITICAL_THRESHOLD", "value": "3" },
+        { "name": "ALERT_WARNING_THRESHOLD", "value": "5" },
+        { "name": "ALERT_SLACK_ENABLED", "value": "true" },
+        { "name": "ALERT_SLACK_CHANNEL", "value": "#payments-alerts" }
+      ],
+      "secrets": [
+        {
+          "name": "CIN7_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:cin7-stripe/cin7-api-key"
+        },
+        {
+          "name": "CIN7_TENANT",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:cin7-stripe/cin7-tenant"
+        },
+        {
+          "name": "STRIPE_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:cin7-stripe/stripe-api-key"
+        },
+        {
+          "name": "STRIPE_WEBHOOK_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:cin7-stripe/stripe-webhook-secret"
+        },
+        {
+          "name": "ADMIN_TOKEN",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:cin7-stripe/admin-token"
+        },
+        {
+          "name": "ALERT_SLACK_WEBHOOK_URL",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:cin7-stripe/slack-webhook"
+        }
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "data",
+          "containerPath": "/app/data"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/cin7-stripe-integration",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs",
+          "awslogs-create-group": "true"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      },
+      "essential": true
+    }
+  ],
+  "volumes": [
+    {
+      "name": "data",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "fs-XXXXXXXX",
+        "rootDirectory": "/",
+        "transitEncryption": "ENABLED",
+        "authorizationConfig": {
+          "iam": "ENABLED"
+        }
+      }
+    }
+  ]
+}

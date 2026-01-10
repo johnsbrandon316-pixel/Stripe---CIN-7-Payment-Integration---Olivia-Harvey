@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cin7-stripe-integration
+  namespace: payments
+  labels:
+    app: cin7-stripe-integration
+spec:
+  type: ClusterIP  # Change to LoadBalancer for external access
+  ports:
+  - port: 80
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  selector:
+    app: cin7-stripe-integration

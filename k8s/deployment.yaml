@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cin7-stripe-integration
+  namespace: payments
+  labels:
+    app: cin7-stripe-integration
+    version: v1.0.0
+spec:
+  replicas: 1  # Single instance to avoid worker duplication
+  strategy:
+    type: Recreate  # Ensure clean shutdown before new pod starts
+  selector:
+    matchLabels:
+      app: cin7-stripe-integration
+  template:
+    metadata:
+      labels:
+        app: cin7-stripe-integration
+        version: v1.0.0
+    spec:
+      containers:
+      - name: integration-service
+        image: redi-cin7-stripe-integration:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+          name: http
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: LOG_LEVEL
+          value: "info"
+        - name: APP_PORT
+          value: "3000"
+        envFrom:
+        - configMapRef:
+            name: cin7-stripe-config
+        - secretRef:
+            name: cin7-stripe-secrets
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 2
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: cin7-stripe-data
+      restartPolicy: Always
