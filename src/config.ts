@@ -12,6 +12,8 @@ const EnvSchema = z.object({
   CIN7_BASE_URL: z.string().url().default('https://api.cin7.com'),
   CIN7_API_KEY: z.string().optional(),
   CIN7_TENANT: z.string().optional(),
+  // Admin token for accessing admin endpoints (optional; if not set, admin endpoints disabled)
+  ADMIN_TOKEN: z.string().optional(),
 });
 
 export const config = EnvSchema.parse(process.env);

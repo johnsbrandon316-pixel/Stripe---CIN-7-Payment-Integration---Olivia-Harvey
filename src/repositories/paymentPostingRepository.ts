@@ -107,6 +107,16 @@ export class PaymentPostingRepository {
     const row = stmt.get(cin7_sale_id, stripe_payment_intent_id) as PaymentPosting | undefined;
     return row || null;
   }
+
+  /**
+   * Find posting by ID
+   */
+  findById(id: number): PaymentPosting | null {
+    const db = getDb();
+    const stmt = db.prepare('SELECT * FROM payment_postings WHERE id = ?');
+    const row = stmt.get(id) as PaymentPosting | undefined;
+    return row || null;
+  }
 }
 
 export const paymentPostingRepository = new PaymentPostingRepository();

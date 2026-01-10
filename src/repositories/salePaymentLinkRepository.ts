@@ -59,6 +59,16 @@ export class SalePaymentLinkRepository {
   }
 
   /**
+   * Find payment link by ID
+   */
+  findById(id: number): SalePaymentLink | null {
+    const db = getDb();
+    const stmt = db.prepare('SELECT * FROM sale_payment_links WHERE id = ?');
+    const row = stmt.get(id) as SalePaymentLink | undefined;
+    return row || null;
+  }
+
+  /**
    * Find payment link by Stripe Payment Link ID
    */
   findByStripePaymentLinkId(stripe_payment_link_id: string): SalePaymentLink | null {
@@ -71,19 +81,19 @@ export class SalePaymentLinkRepository {
   /**
    * Update payment link status
    */
-  updateStatus(cin7_sale_id: number, status: SalePaymentLink['status']): void {
+  updateStatus(id: number, status: SalePaymentLink['status']): void {
     const db = getDb();
     const stmt = db.prepare(`
       UPDATE sale_payment_links 
       SET status = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE cin7_sale_id = ?
+      WHERE id = ?
     `);
 
     try {
-      stmt.run(status, cin7_sale_id);
+      stmt.run(status, id);
       logger.info({
         msg: 'Updated sale payment link status',
-        cin7_sale_id,
+        id,
         status,
       });
     } catch (error) {

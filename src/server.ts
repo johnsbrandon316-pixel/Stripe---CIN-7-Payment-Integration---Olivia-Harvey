@@ -1,6 +1,7 @@
 import express from 'express';
 import { healthRouter } from './routes/health';
 import { webhooksRouter } from './routes/webhooks';
+import { adminRouter } from './routes/admin';
 
 export function createServer() {
   const app = express();
@@ -12,6 +13,7 @@ export function createServer() {
   app.use(express.json());
 
   app.use(healthRouter);
+  app.use(adminRouter);
 
   return app;
 }
