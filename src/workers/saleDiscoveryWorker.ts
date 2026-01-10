@@ -2,6 +2,7 @@ import { cin7Client } from '../clients/cin7';
 import { stripeClient } from '../clients/stripe';
 import { salePaymentLinkRepository } from '../repositories/salePaymentLinkRepository';
 import { idempotencyKeyRepository } from '../repositories/idempotencyKeyRepository';
+import { metricsCollector } from '../metrics';
 import logger from '../logger';
 import { config } from '../config';
 
@@ -74,6 +75,7 @@ export class SaleDiscoveryWorker {
    * Process new sales and generate payment links
    */
   private async processNewSales(): Promise<void> {
+    metricsCollector.increment('worker_cycles');
     const startTime = Date.now();
     logger.info({ msg: 'Starting sale discovery cycle' });
 
@@ -85,14 +87,19 @@ export class SaleDiscoveryWorker {
       }
 
       // Fetch recent sales from Cin7
+      const cin7StartTime = Date.now();
       const sales = await cin7Client.getSales({
         limit: this.config.batchSize,
         modifiedSince: this.getModifiedSinceDate(),
       });
+      const cin7Duration = Date.now() - cin7StartTime;
+      metricsCollector.recordTime('cin7', cin7Duration);
+      metricsCollector.increment('cin7_api_calls');
 
       logger.info({
         msg: 'Fetched sales from Cin7',
         count: sales.length,
+        duration_ms: cin7Duration,
       });
 
       if (sales.length === 0) {
@@ -115,6 +122,7 @@ export class SaleDiscoveryWorker {
             error,
           });
           failed++;
+          metricsCollector.increment('worker_errors');
         }
       }
 
@@ -127,6 +135,8 @@ export class SaleDiscoveryWorker {
         durationMs: duration,
       });
     } catch (error) {
+      metricsCollector.increment('cin7_api_errors');
+      metricsCollector.increment('worker_errors');
       logger.error({ msg: 'Failed to fetch sales from Cin7', error });
     }
   }

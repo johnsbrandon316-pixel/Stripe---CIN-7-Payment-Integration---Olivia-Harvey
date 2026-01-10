@@ -6,6 +6,8 @@ import { config } from '../config';
 import { webhookEventRepository } from '../repositories/webhookEventRepository';
 import { paymentPostingRepository } from '../repositories/paymentPostingRepository';
 import { salePaymentLinkRepository } from '../repositories/salePaymentLinkRepository';
+import { metricsCollector } from '../metrics';
+import { alertingService } from '../alerting';
 
 export const webhooksRouter = Router();
 
@@ -39,6 +41,7 @@ webhooksRouter.post(
       );
 
       logger.info({ msg: 'Webhook event received', eventType: event.type, eventId: event.id });
+      metricsCollector.increment('webhooks_received');
 
       // Check if event already processed (idempotency)
       const alreadyProcessed = webhookEventRepository.exists(event.id);
@@ -63,12 +66,17 @@ webhooksRouter.post(
       response.status(200).json({ received: true });
 
       // Process webhook asynchronously
+      const startTime = Date.now();
       processWebhookAsync(event).catch((error) => {
         logger.error({
           msg: 'Async webhook processing failed',
           eventId: event.id,
           error,
         });
+        metricsCollector.increment('webhooks_failed');
+      }).then(() => {
+        const duration = Date.now() - startTime;
+        metricsCollector.recordTime('webhook', duration);
       });
     } catch (error) {
       logger.error({ msg: 'Webhook processing error', error });
@@ -140,6 +148,7 @@ async function processWebhookAsync(event: any): Promise<void> {
     if (config.CIN7_API_KEY) {
       try {
         const amountDollars = paymentData.amount / 100; // Convert cents to dollars
+        const startTime = Date.now();
         
         const cin7Response = await cin7Client.postPayment({
           saleID: paymentData.cin7SaleId,
@@ -149,11 +158,17 @@ async function processWebhookAsync(event: any): Promise<void> {
           notes: `Stripe Payment Intent: ${paymentData.stripePaymentIntentId || paymentData.stripeChargeId}`,
         });
 
+        const duration = Date.now() - startTime;
+        metricsCollector.recordTime('cin7', duration);
+        metricsCollector.increment('cin7_api_calls');
+        metricsCollector.increment('payments_posted');
+
         logger.info({
           msg: 'Payment posted to Cin7 SalePayments',
           cin7SaleId: paymentData.cin7SaleId,
           amount: amountDollars,
           stripeChargeId: paymentData.stripeChargeId,
+          duration_ms: duration,
         });
 
         // Mark payment posting as complete
@@ -174,11 +189,27 @@ async function processWebhookAsync(event: any): Promise<void> {
           });
         }
       } catch (cin7Error) {
+        metricsCollector.increment('cin7_api_errors');
+        metricsCollector.increment('payments_failed');
+        
         logger.error({
           msg: 'Failed to post payment to Cin7',
           cin7SaleId: paymentData.cin7SaleId,
           error: cin7Error,
         });
+
+        // Send alert for critical payment failure
+        await alertingService.sendCritical(
+          'Payment Posting Failure',
+          'Failed to post payment to Cin7 after successful Stripe charge',
+          {
+            cin7_sale_id: paymentData.cin7SaleId,
+            stripe_charge_id: paymentData.stripeChargeId,
+            amount: paymentData.amount,
+            error: cin7Error instanceof Error ? cin7Error.message : String(cin7Error),
+          }
+        );
+
         throw cin7Error; // Rethrow to prevent marking event as processed
       }
     } else {
@@ -189,6 +220,7 @@ async function processWebhookAsync(event: any): Promise<void> {
     }
 
     // Mark webhook event as processed
+    metricsCollector.increment('webhooks_processed');
     webhookEventRepository.markProcessed(event.id);
 
     logger.info({
