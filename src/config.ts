@@ -9,7 +9,7 @@ const EnvSchema = z.object({
   STRIPE_API_KEY: z.string().min(1, 'STRIPE_API_KEY is required'),
   // Optional for local testing; required in production when webhooks are enabled
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
-  CIN7_BASE_URL: z.string().url().default('https://api.cin7.com'),
+  CIN7_BASE_URL: z.string().url().default('https://inventory.dearsystems.com/ExternalApi/v2/'),
   CIN7_API_KEY: z.string().optional(),
   CIN7_TENANT: z.string().optional(),
   // Admin token for accessing admin endpoints (optional; if not set, admin endpoints disabled)

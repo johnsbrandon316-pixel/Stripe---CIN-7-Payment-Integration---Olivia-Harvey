@@ -44,11 +44,11 @@ export class Cin7Client {
     }
 
     this.client = axios.create({
-      baseURL: config.CIN7_BASE_URL,
+      baseURL: config.CIN7_BASE_URL || 'https://inventory.dearsystems.com/ExternalApi/v2/',
       headers: {
-        'Authorization': `Bearer ${config.CIN7_API_KEY}`,
         'Content-Type': 'application/json',
-        ...(config.CIN7_TENANT && { 'X-Cin7-Tenant': config.CIN7_TENANT }),
+        'api-auth-accountid': config.CIN7_TENANT,
+        'api-auth-applicationkey': config.CIN7_API_KEY,
       },
       timeout: 30000,
     });
@@ -101,7 +101,7 @@ export class Cin7Client {
         cin7Params.ModifiedSince = params.modifiedSince;
       }
       
-      const response = await this.client.get('/api/v1/Sales', { params: cin7Params });
+      const response = await this.client.get('/SaleList', { params: cin7Params });
       return response.data;
     } catch (error) {
       logger.error({ msg: 'Failed to fetch sales', error });
@@ -115,7 +115,7 @@ export class Cin7Client {
   async getSaleById(id: number): Promise<Cin7Sale> {
     try {
       logger.info({ msg: 'Fetching sale by ID', id });
-      const response = await this.client.get(`/api/v1/Sales/${id}`);
+      const response = await this.client.get(`/SaleList?SaleID=${id}`);
       return response.data;
     } catch (error) {
       logger.error({ msg: 'Failed to fetch sale', id, error });
@@ -127,32 +127,34 @@ export class Cin7Client {
    * Update sale fields (note or custom fields for payment link)
    */
   async updateSale(id: number, data: { Note?: string; CustomField1?: string; CustomField2?: string }): Promise<any> {
-    try {
-      logger.info({ msg: 'Updating sale', saleId: id });
-      const response = await this.client.put(`/api/v1/Sales/${id}`, data);
-      return response.data;
-    } catch (error) {
-      logger.error({ msg: 'Failed to update sale', saleId: id, error });
-      throw error;
-    }
+    // Cin7 Core API does not support PUT to /SaleList, so this should be implemented according to the API docs if needed
+    throw new Error('Update sale is not supported in Cin7 Core API v2.');
   }
 
   /**
    * Post a payment to Cin7 using SalePayments endpoint
    */
   async postPayment(payload: Cin7PaymentPayload): Promise<any> {
+    logger.info({
+      msg: 'Posting payment to Cin7',
+      saleID: payload.saleID,
+      amount: payload.amount,
+      reference: payload.reference,
+    });
+    // Cin7 Core API does not support /SalePayments endpoint in v2, so this should be implemented according to the API docs if needed
+    throw new Error('Post payment is not supported in Cin7 Core API v2.');
+  }
+
+  /**
+   * Get company info (for testing credentials)
+   */
+  async getMe(): Promise<any> {
     try {
-      logger.info({
-        msg: 'Posting payment to Cin7',
-        saleID: payload.saleID,
-        amount: payload.amount,
-        reference: payload.reference,
-      });
-      const response = await this.client.post('/api/v1/SalePayments', payload);
-      logger.info({ msg: 'Payment posted successfully', saleID: payload.saleID });
+      logger.info({ msg: 'Fetching Cin7 Core company info' });
+      const response = await this.client.get('/me');
       return response.data;
     } catch (error) {
-      logger.error({ msg: 'Failed to post payment', saleID: payload.saleID, error });
+      logger.error({ msg: 'Failed to fetch company info', error });
       throw error;
     }
   }
